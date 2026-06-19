@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <script>
+    // Global Error Logger for file:// troubleshooting
+    window.onerror = function(message, source, lineno, colno, error) {
+      var panel = document.getElementById("error-console-panel");
+      var pre = document.getElementById("error-console-pre");
+      if (panel && pre) {
+        panel.style.display = "block";
+        pre.textContent = "Error Message: " + message + "\nFile: " + source + "\nLine: " + lineno + ", Col: " + colno + "\n\nStack Trace:\n" + (error ? error.stack : 'N/A');
+      } else {
+        alert("JavaScript 런타임 에러 발생:\n" + message + "\n\n파일: " + source + "\n라인: " + lineno + ", 열: " + colno);
+      }
+      return false;
+    };
+  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TeamFeed - 대학생 팀 프로젝트 협업 및 파일 피드백 플랫폼</title>
+  <meta name="description" content="대학생 팀 프로젝트를 위한 실시간 파일 공유 및 피드백 댓글 플랫폼. 팀을 만들고 파일을 공유하며 이모지와 댓글로 완벽한 피드백을 주고받으세요.">
+  
+  <!-- Google Fonts: Outfit & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome for Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Visible Error Console Panel (Hidden by default) -->
+  <div id="error-console-panel" style="display:none; position:fixed; bottom:0; left:0; right:0; background:rgba(220,38,38,0.95); color:white; padding:1.5rem; font-family:monospace; z-index:99999; max-height:50vh; overflow-y:auto; border-top:3px solid #ff8888; font-size:13px; line-height:1.5; box-shadow: 0 -10px 30px rgba(0,0,0,0.5);">
+    <h3 style="margin-bottom:0.5rem; display:flex; align-items:center; gap:0.5rem; font-weight: bold;"><i class="fa-solid fa-triangle-exclamation"></i> JavaScript 런타임 오류가 발생했습니다</h3>
+    <pre id="error-console-pre" style="white-space:pre-wrap; background:rgba(0,0,0,0.3); padding:1rem; border-radius:8px; margin-bottom:1rem;"></pre>
+    <button onclick="localStorage.removeItem('teamfeed_state'); location.reload();" style="padding:0.5rem 1rem; background:white; color:#dc2626; border:none; border-radius:6px; font-weight:bold; cursor:pointer; font-size:12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">로컬 데이터(LocalStorage) 초기화 및 재시도</button>
+  </div>
+
+  <!-- Background Decorative Blurs -->
+  <div class="bg-glow bg-glow-1"></div>
+  <div class="bg-glow bg-glow-2"></div>
+
+  <!-- App Wrapper -->
+  <div id="app" class="app-wrapper">
+    
+    <!-- 1. LOGIN SCREEN -->
+    <section id="login-screen" class="screen active">
+      <div class="login-card glass">
+        <div class="login-header">
+          <div class="logo">
+            <span class="logo-icon"><i class="fa-solid fa-comments-pie"></i></span>
+            <h1>TeamFeed</h1>
+          </div>
+          <p class="subtitle">대학생 팀 프로젝트 파일 공유 & 피드백 플랫폼</p>
+        </div>
+        
+        <form id="login-form" class="login-form">
+          <div class="form-group">
+            <label for="nickname-input">닉네임</label>
+            <div class="input-wrapper">
+              <i class="fa-regular fa-user input-icon"></i>
+              <input type="text" id="nickname-input" required placeholder="프로필에 표시될 닉네임" maxlength="15">
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="univ-input">소속 (대학/학과)</label>
+            <div class="input-wrapper">
+              <i class="fa-solid fa-graduation-cap input-icon"></i>
+              <input type="text" id="univ-input" required placeholder="예: 한국대학교 컴퓨터공학과">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>프로필 아바타 선택</label>
+            <div class="avatar-selector">
+              <input type="radio" name="avatar" id="av-1" value="🚀" checked>
+              <label for="av-1" class="avatar-option">🚀</label>
+              
+              <input type="radio" name="avatar" id="av-2" value="💻">
+              <label for="av-2" class="avatar-option">💻</label>
+              
+              <input type="radio" name="avatar" id="av-3" value="🎨">
+              <label for="av-3" class="avatar-option">🎨</label>
+              
+              <input type="radio" name="avatar" id="av-4" value="📚">
+              <label for="av-4" class="avatar-option">📚</label>
+              
+              <input type="radio" name="avatar" id="av-5" value="✨">
+              <label for="av-5" class="avatar-option">✨</label>
+              
+              <input type="radio" name="avatar" id="av-6" value="🔥">
+              <label for="av-6" class="avatar-option">🔥</label>
+            </div>
+          </div>
+          
+          <button type="submit" id="btn-login" class="btn btn-primary btn-block">
+            <span>시작하기</span>
+            <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- 2. MAIN APP LAYOUT (Sidebar + Content) -->
+    <div id="main-layout" class="main-layout hidden">
+      <!-- SIDEBAR -->
+      <aside class="sidebar glass">
+        <div class="sidebar-header">
+          <div class="logo">
+            <span class="logo-icon"><i class="fa-solid fa-comments-pie"></i></span>
+            <h2>TeamFeed</h2>
+          </div>
+          <button id="sidebar-close-btn" class="mobile-only-btn" aria-label="사이드바 닫기">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <!-- User Profile Card -->
+        <div class="user-profile-card">
+          <div class="user-avatar" id="user-display-avatar">🚀</div>
+          <div class="user-info">
+            <h3 id="user-display-nickname" class="user-nickname">사용자</h3>
+            <p id="user-display-univ" class="user-univ">소속 대학교</p>
+          </div>
+        </div>
+
+        <!-- Navigation / Team List -->
+        <nav class="sidebar-nav">
+          <div class="nav-section-title">
+            <span>나의 팀 목록</span>
+            <button id="btn-open-create-team" class="btn-icon-sm" title="새 팀 생성">
+              <i class="fa-solid fa-plus"></i>
+            </button>
+          </div>
+          <ul id="team-list" class="team-list">
+            <!-- Dynamic Teams List -->
+          </ul>
+        </nav>
+
+        <!-- Sidebar Footer -->
+        <div class="sidebar-footer">
+          <button id="btn-dashboard" class="btn btn-secondary btn-block mb-2">
+            <i class="fa-solid fa-chart-simple"></i>
+            <span>대시보드로 가기</span>
+          </button>
+          <button id="btn-logout" class="btn btn-text btn-block text-danger">
+            <i class="fa-solid fa-right-from-bracket"></i>
+            <span>로그아웃</span>
+          </button>
+        </div>
+      </aside>
+
+      <!-- CONTENT AREA -->
+      <main class="content-area">
+        <!-- Mobile Header Bar -->
+        <header class="mobile-header">
+          <button id="sidebar-toggle-btn" aria-label="메뉴 열기">
+            <i class="fa-solid fa-bars"></i>
+          </button>
+          <h1 class="mobile-title">TeamFeed</h1>
+          <div class="mobile-profile-avatar" id="mobile-avatar">🚀</div>
+        </header>
+
+        <!-- A. DASHBOARD VIEW -->
+        <section id="dashboard-view" class="view-section active">
+          <div class="view-header">
+            <div>
+              <h2 class="view-title">종합 대시보드</h2>
+              <p class="view-subtitle">참여 중인 프로젝트의 최신 현황입니다.</p>
+            </div>
+          </div>
+
+          <!-- Stats Grid -->
+          <div class="stats-grid">
+            <div class="stat-card glass">
+              <div class="stat-icon icon-blue"><i class="fa-solid fa-users"></i></div>
+              <div class="stat-data">
+                <span class="stat-label">참여 중인 팀</span>
+                <span id="stat-teams-count" class="stat-value">0</span>
+              </div>
+            </div>
+            <div class="stat-card glass">
+              <div class="stat-icon icon-purple"><i class="fa-solid fa-file-arrow-up"></i></div>
+              <div class="stat-data">
+                <span class="stat-label">공유된 파일</span>
+                <span id="stat-files-count" class="stat-value">0</span>
+              </div>
+            </div>
+            <div class="stat-card glass">
+              <div class="stat-icon icon-pink"><i class="fa-solid fa-comments"></i></div>
+              <div class="stat-data">
+                <span class="stat-label">등록된 피드백</span>
+                <span id="stat-feedbacks-count" class="stat-value">0</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dashboard Content Body -->
+          <div class="dashboard-body-grid">
+            <!-- Recent Activity / Files -->
+            <div class="dashboard-panel glass">
+              <h3 class="panel-title"><i class="fa-solid fa-clock-rotate-left"></i> 최근 공유된 파일</h3>
+              <div class="panel-content">
+                <ul id="recent-files-list" class="recent-files-list">
+                  <!-- Dynamic Recent Files -->
+                  <li class="empty-state">
+                    <i class="fa-solid fa-folder-open empty-icon"></i>
+                    <p>최근 공유된 파일이 없습니다.</p>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <!-- Team Quick Actions & List -->
+            <div class="dashboard-panel glass">
+              <h3 class="panel-title"><i class="fa-solid fa-rocket"></i> 빠른 시작</h3>
+              <div class="panel-content quick-start-panel">
+                <p class="quick-desc">새로운 협업 공간을 개설하거나 팀원들을 초대하여 피드백을 시작해 보세요!</p>
+                <button id="btn-dashboard-create-team" class="btn btn-primary btn-block">
+                  <i class="fa-solid fa-circle-plus"></i>
+                  <span>새 팀 개설하기</span>
+                </button>
+                
+                <div class="guide-box">
+                  <h4>💡 사용 팁</h4>
+                  <ul>
+                    <li>1MB 이하의 이미지/텍스트 파일은 브라우저에서 직접 미리보기가 가능해요!</li>
+                    <li>이모지 리액션을 사용해 빠른 동의나 수정 필요 피드백을 남겨보세요.</li>
+                    <li>GitHub Pages 등 정적 서버 환경을 지원하기 위해 로컬 저장소(localStorage)에 안전하게 데이터가 보관됩니다.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- B. TEAM FEED VIEW -->
+        <section id="team-feed-view" class="view-section hidden">
+          <!-- Dynamic Header -->
+          <div class="team-feed-header glass">
+            <div class="team-header-info">
+              <span id="team-feed-category" class="badge">카테고리</span>
+              <h2 id="team-feed-name" class="view-title">팀 프로젝트 이름</h2>
+              <p id="team-feed-desc" class="view-subtitle">프로젝트에 대한 세부 설명이 들어가는 곳입니다.</p>
+            </div>
+            <div class="team-header-actions">
+              <button id="btn-leave-team" class="btn btn-outline-danger">
+                <i class="fa-solid fa-door-open"></i>
+                <span>팀 나가기</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Feed Main Grid -->
+          <div class="feed-grid">
+            <!-- Left: Files Feed -->
+            <div class="feed-main-content">
+              <!-- Upload Area -->
+              <div class="upload-zone glass" id="drop-zone">
+                <input type="file" id="file-input" class="hidden-file-input" multiple>
+                <div class="upload-zone-content">
+                  <i class="fa-solid fa-cloud-arrow-up upload-icon"></i>
+                  <h3>드래그 앤 드롭하여 파일 공유하기</h3>
+                  <p>또는 <span>컴퓨터에서 파일 선택</span></p>
+                  <span class="upload-limit-info">최대 1MB 이하의 텍스트, 이미지 파일은 직접 보관 및 다운로드/미리보기가 가능합니다. (대용량은 가상 업로드 지원)</span>
+                </div>
+              </div>
+
+              <!-- Files Feed Header -->
+              <div class="feed-section-header">
+                <h3>공유 피드 (<span id="team-files-count">0</span>개 파일)</h3>
+              </div>
+
+              <!-- Files Feed List -->
+              <div id="files-feed-list" class="files-feed-list">
+                <!-- Dynamic File Feed Items -->
+                <div class="empty-state glass">
+                  <i class="fa-solid fa-file-circle-plus empty-icon"></i>
+                  <p>이 팀에 공유된 파일이 아직 없습니다.</p>
+                  <p class="sub-text">위 영역에 파일을 끌어다 놓아 첫 피드백을 시작해 보세요!</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- 3. MODALS -->
+  <!-- Create Team Modal -->
+  <div id="create-team-modal" class="modal-overlay hidden">
+    <div class="modal-card glass animate-slide-up">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-users-gear"></i> 새로운 팀 프로젝트 생성</h3>
+        <button id="btn-close-team-modal" class="btn-icon-close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="create-team-form" class="modal-form">
+        <div class="form-group">
+          <label for="team-name-input">팀 프로젝트 명</label>
+          <div class="input-wrapper">
+            <i class="fa-solid fa-signature input-icon"></i>
+            <input type="text" id="team-name-input" required placeholder="예: 디자인씽킹 A조" maxlength="30">
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="team-desc-input">프로젝트 설명</label>
+          <div class="input-wrapper">
+            <i class="fa-solid fa-align-left input-icon"></i>
+            <textarea id="team-desc-input" required placeholder="프로젝트 목표나 주제를 한 줄로 요약해 주세요." rows="2" maxlength="100"></textarea>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="team-category-select">프로젝트 카테고리</label>
+          <div class="input-wrapper">
+            <i class="fa-solid fa-tags input-icon"></i>
+            <select id="team-category-select" required>
+              <option value="전공">전공 프로젝트</option>
+              <option value="교양">교양 프로젝트</option>
+              <option value="동아리/학회">동아리 / 학회</option>
+              <option value="공모전/대외활동">공모전 / 대외활동</option>
+              <option value="개인/사이드">개인 / 사이드 프로젝트</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" id="btn-cancel-team-modal" class="btn btn-secondary">취소</button>
+          <button type="submit" class="btn btn-primary">생성하기</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Custom Scripts -->
+  <script src="app.js"></script>
+</body>
+</html>
